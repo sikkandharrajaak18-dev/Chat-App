@@ -17,8 +17,8 @@ var builder = WebApplication.CreateBuilder(args);
 var redisconnect = "definite-dingo-70327.upstash.io:6379,password=gQAAAAAAARK3AAIgcDEyM2ZlZjMyZWFjNTg0MGNkYWZjY2UxZTY2NWFjMTkyZA,ssl=True,abortConnect=False";
 
 
-var redis = ConnectionMultiplexer.Connect(redisconnect);
 
+var redis = ConnectionMultiplexer.Connect(redisconnect);
 builder.Services.AddSingleton<IConnectionMultiplexer>(redis);
 
 builder.Services.AddSignalR()
