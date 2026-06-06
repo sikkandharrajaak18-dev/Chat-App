@@ -71,6 +71,10 @@
 
     <div class="group-messages" id="messagesContainer">
         <div class="messages-list" id="messages"></div>
+         <div class="no-messages" id="noMessages">
+            <div class="no-messages-icon"><i class="fas fa-comment-dots"></i></div>
+            <div class="no-messages-text">Start chatting</div>
+          </div>
         <div class="chat-loading" id="chatLoading">
             <div class="loading-spinner"></div>
             <div class="loading-text">Loading messages...</div>
@@ -1176,7 +1180,36 @@
         width: 100%;
         right: -100%;
     }
-
+    .no-messages {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 16px;
+    padding: 60px 20px;
+    text-align: center;
+}
+.no-messages.show {
+    display: flex;
+}
+.no-messages-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    color: var(--primary-color);
+    box-shadow: 0 8px 30px rgba(99, 102, 241, 0.15);
+}
+.no-messages-text {
+    font-size: 18px;
+    font-weight: 600;
+    color: #64748b;
+}
     .input-wrapper {
         padding: 8px 8px 8px 12px;
         gap: 6px;
@@ -1615,6 +1648,15 @@ connection.start()
                 }
                 appendMessage(msg.senderId, msg.senderName, msg.senderProfileImage, msg.text, msg.sentAt, msg.groupMessageId, msg.fileType, msg.fileName, msg.isDeleted || false, msg.deliveredCount || 0, msg.readCount || 0, msg.totalRecipients || 0, msg.isStared || false, msg.duration);
             });
+
+            // After the messages.forEach(...) loop in loadPastMessages(), add:
+
+const noMessages = document.getElementById('noMessages');
+if (messages.length === 0) {
+    noMessages.classList.add('show');
+} else {
+    noMessages.classList.remove('show');
+}
             scrollToBottom();
         } catch (err) {
             console.error("Failed to load messages: ", err);

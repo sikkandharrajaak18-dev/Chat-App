@@ -14,5 +14,6 @@ namespace Chat_App.Models
         public bool IsOnline { get; set; }
         public int MemberCount { get; set; }
         public string FriendStatus { get; set; } = "None";
+        public bool IsAdmin { get; set; }
     }
 }

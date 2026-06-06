@@ -73,7 +73,8 @@ namespace Chat_App.Services.Implementations
                     FileType = lastMessage?.FileType,
                     FileName = lastMessage?.FileName,
                     UnreadCount = unreadCounts.GetValueOrDefault(user.Id, 0),
-                    IsOnline = user.IsOnline
+                    IsOnline = user.IsOnline,
+                    IsAdmin = user.Role == "Admin"
                 });
             }
             var userGroups = (await _groupRepo.GetUserGroupsAsync(currentUserId))

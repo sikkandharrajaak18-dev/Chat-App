@@ -146,7 +146,7 @@
 
             @foreach (var item in Model)
             {
-                @if (!item.IsGroup)
+                @if (!item.IsGroup && !item.IsAdmin)
                 {
                     <div class="group-user-item">
 
