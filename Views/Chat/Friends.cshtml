@@ -540,302 +540,346 @@
 </style>
 
 <script>
-    const currentUserId = parseInt('@User.FindFirstValue(ClaimTypes.NameIdentifier)');
-    const PAGE_SIZE = 15;
-    let allUsersForFriends = [];
-    let allUsersLoaded = [];
-    let skip = 0;
-    let hasMore = true;
-    let isLoading = false;
+ const currentUserId = parseInt('@User.FindFirstValue(ClaimTypes.NameIdentifier)');
+const PAGE_SIZE = 15;
+let allUsersForFriends = [];
+let allUsersLoaded = [];
+let skip = 0;
+let hasMore = true;
+let isLoading = false;
 
-    document.addEventListener('DOMContentLoaded', function() {
-        loadPendingRequests();
-        loadSentRequests();
-        loadUsersForFriends(true);
+document.addEventListener('DOMContentLoaded', function () {
+    loadPendingRequests();
+    loadSentRequests();
+    loadUsersForFriends(true);
 
-        const sectionAll = document.getElementById('sectionAll');
-        sectionAll.addEventListener('scroll', function() {
-            if (this.scrollTop + this.clientHeight >= this.scrollHeight - 100) {
-                loadUsersForFriends();
-            }
-        });
+    const sectionAll = document.getElementById('sectionAll');
+    sectionAll.addEventListener('scroll', function () {
+        if (this.scrollTop + this.clientHeight >= this.scrollHeight - 100) {
+            loadUsersForFriends();
+        }
     });
+});
 
-    function switchTab(tab) {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.friends-section').forEach(s => s.classList.remove('active'));
+function switchTab(tab) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.friends-section').forEach(s => s.classList.remove('active'));
 
-        if (tab === 'all') {
-            document.getElementById('tabAll').classList.add('active');
-            document.getElementById('sectionAll').classList.add('active');
-        } else if (tab === 'pending') {
-            document.getElementById('tabPending').classList.add('active');
-            document.getElementById('sectionPending').classList.add('active');
-            loadPendingRequests();
-        } else if (tab === 'sent') {
-            document.getElementById('tabSent').classList.add('active');
-            document.getElementById('sectionSent').classList.add('active');
-            loadSentRequests();
-        }
+    if (tab === 'all') {
+        document.getElementById('tabAll').classList.add('active');
+        document.getElementById('sectionAll').classList.add('active');
+    } else if (tab === 'pending') {
+        document.getElementById('tabPending').classList.add('active');
+        document.getElementById('sectionPending').classList.add('active');
+        loadPendingRequests();
+    } else if (tab === 'sent') {
+        document.getElementById('tabSent').classList.add('active');
+        document.getElementById('sectionSent').classList.add('active');
+        loadSentRequests();
+    }
+}
+
+async function loadUsersForFriends(reset) {
+    if (isLoading) return;
+    if (!reset && !hasMore) return;
+
+    if (reset) {
+        skip = 0;
+        hasMore = true;
+        allUsersLoaded = [];
     }
 
-    async function loadUsersForFriends(reset) {
-        if (isLoading) return;
-        if (!reset && !hasMore) return;
+    isLoading = true;
+    document.getElementById('friendsLoader').style.display = 'flex';
 
-        if (reset) {
-            skip = 0;
-            hasMore = true;
-            allUsersLoaded = [];
-        }
+    try {
+        const response = await fetch(`/Chat/GetAllUsersForFriendRequest?skip=${skip}&take=${PAGE_SIZE}`);
+        const data = await response.json();
+        const users = data.users;
 
-        isLoading = true;
-        document.getElementById('friendsLoader').style.display = 'flex';
+        allUsersLoaded = reset ? users : allUsersLoaded.concat(users);
+        allUsersForFriends = allUsersLoaded;
+        skip += users.length;
+        hasMore = users.length === PAGE_SIZE;
 
-        try {
-            const response = await fetch(`/Chat/GetAllUsersForFriendRequest?skip=${skip}&take=${PAGE_SIZE}`);
-            const data = await response.json();
-            const users = data.users;
+        renderAddFriendsList(allUsersForFriends);
+    } catch (err) {
+        console.error("Failed to load users:", err);
+    } finally {
+        isLoading = false;
+        document.getElementById('friendsLoader').style.display = hasMore ? 'flex' : 'none';
+    }
+}
 
-            allUsersLoaded = reset ? users : allUsersLoaded.concat(users);
-            allUsersForFriends = allUsersLoaded;
-            skip += users.length;
-            hasMore = users.length === PAGE_SIZE;
+function getFriendStatus(userId) {
+    const user = allUsersForFriends.find(u => u.id === userId);
+    return user ? user.friendshipStatus : { status: "None" };
+}
 
-            renderAddFriendsList(allUsersForFriends);
-        } catch (err) {
-            console.error("Failed to load users:", err);
-        } finally {
-            isLoading = false;
-            document.getElementById('friendsLoader').style.display = hasMore ? 'flex' : 'none';
-        }
+function renderAddFriendsList(users) {
+    const listEl = document.getElementById('addFriendsList');
+    if (users.length === 0) {
+        listEl.innerHTML = `
+            <div class="empty-state">
+                <div class="empty-icon"><i class="fas fa-user-friends"></i></div>
+                <h3>No users found</h3>
+                <p>Try a different search term</p>
+            </div>`;
+        return;
     }
 
-    function getFriendStatus(userId) {
-        const user = allUsersForFriends.find(u => u.id === userId);
-        return user ? user.friendshipStatus : { status: "None" };
-    }
+    listEl.innerHTML = users.map(user => {
+        const status = user.friendshipStatus || { status: "None" };
+        let btnHtml = '';
+        let statusText = '';
 
-    function renderAddFriendsList(users) {
-        const listEl = document.getElementById('addFriendsList');
-        if (users.length === 0) {
-            listEl.innerHTML = `
+        if (status.status === "None") {
+            btnHtml = `<button class="add-friend-btn send" onclick="sendFriendRequest(${user.id})"><i class="fas fa-user-plus"></i> Add Friend</button>`;
+            statusText = user.isOnline ? 'Online' : 'Offline';
+        } else if (status.status === "Pending") {
+            if (status.isSender) {
+                btnHtml = `<button class="add-friend-btn reject" onclick="cancelFriendRequestFromList(${user.id})"><i class="fas fa-times"></i> Cancel Request</button>`;
+                statusText = 'Awaiting response';
+            } else {
+                btnHtml = `<button class="add-friend-btn accept" onclick="acceptFriendRequestFromList(${user.id})"><i class="fas fa-check"></i> Accept</button>
+                           <button class="add-friend-btn reject" onclick="rejectFriendRequestFromList(${user.id})"><i class="fas fa-times"></i></button>`;
+                statusText = 'Sent you a request';
+            }
+        } else if (status.status === "Accepted") {
+            btnHtml = `<button class="add-friend-btn pending"><i class="fas fa-check-circle"></i> Friends</button>`;
+            statusText = 'Connected';
+        }
+
+        const initial = user.username.charAt(0).toUpperCase();
+        const avatarHtml = user.profileImagePath
+            ? `<img src="${user.profileImagePath}" alt="${user.username}" />`
+            : `<span>${initial}</span>`;
+
+        return `
+            <div class="add-friend-item" data-user-id="${user.id}">
+                <div class="add-friend-avatar">${avatarHtml}</div>
+                <div class="add-friend-info">
+                    <div class="add-friend-name">${user.username}</div>
+                    <div class="add-friend-status">${statusText}</div>
+                </div>
+                ${btnHtml}
+            </div>`;
+    }).join('');
+}
+
+async function loadPendingRequests() {
+    try {
+        const response = await fetch('/Chat/GetPendingFriendRequests');
+        const requests = await response.json();
+        const list = document.getElementById('pendingRequestsList');
+
+        if (requests.length > 0) {
+            list.innerHTML = requests.map(req => {
+                const initial = req.senderName.charAt(0).toUpperCase();
+                const avatarHtml = req.senderProfileImage
+                    ? `<img src="${req.senderProfileImage}" alt="${req.senderName}" />`
+                    : `<span>${initial}</span>`;
+                return `
+                    <div class="pending-request-item">
+                        <div class="add-friend-avatar">${avatarHtml}</div>
+                        <div class="add-friend-info">
+                            <div class="add-friend-name">${req.senderName}</div>
+                            <div class="add-friend-status">Wants to connect</div>
+                        </div>
+                        <button class="add-friend-btn accept" onclick="acceptFriendRequestById(${req.id})"><i class="fas fa-check"></i> Accept</button>
+                        <button class="add-friend-btn reject" onclick="rejectFriendRequestById(${req.id})"><i class="fas fa-times"></i></button>
+                    </div>`;
+            }).join('');
+            document.getElementById('tabPending').innerHTML = `<i class="fas fa-user-clock"></i> Requests (${requests.length})`;
+        } else {
+            list.innerHTML = `
                 <div class="empty-state">
-                    <div class="empty-icon"><i class="fas fa-user-friends"></i></div>
-                    <h3>No users found</h3>
-                    <p>Try a different search term</p>
-                </div>
-            `;
-            return;
+                    <div class="empty-icon"><i class="fas fa-inbox"></i></div>
+                    <h3>No pending requests</h3>
+                    <p>When someone sends you a friend request, it will appear here</p>
+                </div>`;
+            document.getElementById('tabPending').innerHTML = '<i class="fas fa-user-clock"></i> Requests';
         }
-
-        listEl.innerHTML = users.map(user => {
-            const status = user.friendshipStatus || { status: "None" };
-            let btnHtml = '';
-            let statusText = '';
-
-            if (status.status === "None") {
-                btnHtml = `<button class="add-friend-btn send" onclick="sendFriendRequest(${user.id})"><i class="fas fa-user-plus"></i> Add Friend</button>`;
-                statusText = user.isOnline ? 'Online' : 'Offline';
-            } else if (status.status === "Pending") {
-                if (status.isSender) {
-                    btnHtml = `<button class="add-friend-btn reject" onclick="cancelFriendRequestFromList(${user.id})"><i class="fas fa-times"></i> Cancel Request</button>`;
-                    statusText = 'Awaiting response';
-                } else {
-                    btnHtml = `<button class="add-friend-btn accept" onclick="acceptFriendRequestFromList(${user.id})"><i class="fas fa-check"></i> Accept</button>
-                               <button class="add-friend-btn reject" onclick="rejectFriendRequestFromList(${user.id})"><i class="fas fa-times"></i></button>`;
-                    statusText = 'Sent you a request';
-                }
-            } else if (status.status === "Accepted") {
-                btnHtml = `<button class="add-friend-btn pending"><i class="fas fa-check-circle"></i> Friends</button>`;
-                statusText = 'Connected';
-            }
-
-            const initial = user.username.charAt(0).toUpperCase();
-            const avatarHtml = user.profileImagePath
-                ? `<img src="${user.profileImagePath}" alt="${user.username}" />`
-                : `<span>${initial}</span>`;
-
-            return `
-                <div class="add-friend-item" data-user-id="${user.id}">
-                    <div class="add-friend-avatar">${avatarHtml}</div>
-                    <div class="add-friend-info">
-                        <div class="add-friend-name">${user.username}</div>
-                        <div class="add-friend-status">${statusText}</div>
-                    </div>
-                    ${btnHtml}
-                </div>
-            `;
-        }).join('');
+    } catch (err) {
+        console.error("Failed to load pending requests:", err);
     }
+}
 
-    async function loadPendingRequests() {
-        try {
-            const response = await fetch('/Chat/GetPendingFriendRequests');
-            const requests = await response.json();
-            const list = document.getElementById('pendingRequestsList');
+async function loadSentRequests() {
+    try {
+        const response = await fetch('/Chat/GetSentFriendRequests');
+        const requests = await response.json();
+        const list = document.getElementById('sentRequestsList');
 
-            if (requests.length > 0) {
-                list.innerHTML = requests.map(req => {
-                    const initial = req.senderName.charAt(0).toUpperCase();
-                    const avatarHtml = req.senderProfileImage
-                        ? `<img src="${req.senderProfileImage}" alt="${req.senderName}" />`
-                        : `<span>${initial}</span>`;
-
-                    return `
-                        <div class="pending-request-item">
-                            <div class="add-friend-avatar">${avatarHtml}</div>
-                            <div class="add-friend-info">
-                                <div class="add-friend-name">${req.senderName}</div>
-                                <div class="add-friend-status">Wants to connect</div>
-                            </div>
-                            <button class="add-friend-btn accept" onclick="acceptFriendRequestById(${req.id})"><i class="fas fa-check"></i> Accept</button>
-                            <button class="add-friend-btn reject" onclick="rejectFriendRequestById(${req.id})"><i class="fas fa-times"></i></button>
+        if (requests.length > 0) {
+            list.innerHTML = requests.map(req => {
+                const initial = req.receiverName.charAt(0).toUpperCase();
+                const avatarHtml = req.receiverProfileImage
+                    ? `<img src="${req.receiverProfileImage}" alt="${req.receiverName}" />`
+                    : `<span>${initial}</span>`;
+                return `
+                    <div class="sent-request-item">
+                        <div class="add-friend-avatar">${avatarHtml}</div>
+                        <div class="add-friend-info">
+                            <div class="add-friend-name">${req.receiverName}</div>
+                            <div class="add-friend-status">Pending...</div>
                         </div>
-                    `;
-                }).join('');
-                document.getElementById('tabPending').innerHTML = '<i class="fas fa-user-clock"></i> Requests (' + requests.length + ')';
+                        <button class="add-friend-btn reject" onclick="cancelFriendRequestById(${req.id})"><i class="fas fa-times"></i> Cancel</button>
+                    </div>`;
+            }).join('');
+            document.getElementById('tabSent').innerHTML = `<i class="fas fa-paper-plane"></i> Sent (${requests.length})`;
+        } else {
+            list.innerHTML = `
+                <div class="empty-state">
+                    <div class="empty-icon"><i class="fas fa-paper-plane"></i></div>
+                    <h3>No sent requests</h3>
+                    <p>Friend requests you send will appear here</p>
+                </div>`;
+            document.getElementById('tabSent').innerHTML = '<i class="fas fa-paper-plane"></i> Sent';
+        }
+    } catch (err) {
+        console.error("Failed to load sent requests:", err);
+    }
+}
+
+function filterAddFriends() {
+    const search = document.getElementById('addFriendsSearch').value.toLowerCase();
+    const filtered = allUsersLoaded.filter(u => u.username.toLowerCase().includes(search));
+    renderAddFriendsList(filtered);
+}
+
+// ── Optimistic UI helper ──────────────────────────────────────────
+function updateUserCardButton(userId, btnHtml, statusText) {
+    const card = document.querySelector(`.add-friend-item[data-user-id="${userId}"]`);
+    if (!card) return;
+    card.querySelectorAll('.add-friend-btn').forEach(b => b.remove());
+    const statusEl = card.querySelector('.add-friend-status');
+    if (statusEl) statusEl.textContent = statusText;
+    card.insertAdjacentHTML('beforeend', btnHtml);
+}
+
+// ── Send Friend Request ───────────────────────────────────────────
+async function sendFriendRequest(userId) {
+    updateUserCardButton(
+        userId,
+        `<button class="add-friend-btn reject" onclick="cancelFriendRequestFromList(${userId})"><i class="fas fa-times"></i> Cancel Request</button>`,
+        'Awaiting response'
+    );
+
+    try {
+        const response = await fetch(`/Chat/SendFriendRequest?receiverId=${userId}`, { method: 'POST' });
+        if (response.ok) {
+            const data = await response.json().catch(() => null);
+            if (data?.requestId) {
+                const user = allUsersForFriends.find(u => u.id === userId);
+                if (user) user.friendshipStatus = { status: "Pending", isSender: true, requestId: data.requestId };
             } else {
-                list.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon"><i class="fas fa-inbox"></i></div>
-                        <h3>No pending requests</h3>
-                        <p>When someone sends you a friend request, it will appear here</p>
-                    </div>
-                `;
-                document.getElementById('tabPending').innerHTML = '<i class="fas fa-user-clock"></i> Requests';
+                fetch(`/Chat/GetAllUsersForFriendRequest?skip=0&take=${PAGE_SIZE}`)
+                    .then(r => r.json())
+                    .then(d => { allUsersLoaded = d.users; allUsersForFriends = d.users; });
             }
-        } catch (err) {
-            console.error("Failed to load pending requests:", err);
+            loadSentRequests();
+        } else {
+            updateUserCardButton(
+                userId,
+                `<button class="add-friend-btn send" onclick="sendFriendRequest(${userId})"><i class="fas fa-user-plus"></i> Add Friend</button>`,
+                'Offline'
+            );
         }
+    } catch (err) {
+        console.error("Failed to send request:", err);
     }
+}
 
-    async function loadSentRequests() {
-        try {
-            const response = await fetch('/Chat/GetSentFriendRequests');
-            const requests = await response.json();
-            const list = document.getElementById('sentRequestsList');
-
-            if (requests.length > 0) {
-                list.innerHTML = requests.map(req => {
-                    const initial = req.receiverName.charAt(0).toUpperCase();
-                    const avatarHtml = req.receiverProfileImage
-                        ? `<img src="${req.receiverProfileImage}" alt="${req.receiverName}" />`
-                        : `<span>${initial}</span>`;
-
-                    return `
-                        <div class="sent-request-item">
-                            <div class="add-friend-avatar">${avatarHtml}</div>
-                            <div class="add-friend-info">
-                                <div class="add-friend-name">${req.receiverName}</div>
-                                <div class="add-friend-status">Pending...</div>
-                            </div>
-                           <button class="add-friend-btn reject" onclick="cancelFriendRequestById(${req.id})"><i class="fas fa-times"></i> Cancel</button>
-                        </div>
-                    `;
-                }).join('');
-                document.getElementById('tabSent').innerHTML = '<i class="fas fa-paper-plane"></i> Sent (' + requests.length + ')';
-            } else {
-                list.innerHTML = `
-                    <div class="empty-state">
-                        <div class="empty-icon"><i class="fas fa-paper-plane"></i></div>
-                        <h3>No sent requests</h3>
-                        <p>Friend requests you send will appear here</p>
-                    </div>
-                `;
-                document.getElementById('tabSent').innerHTML = '<i class="fas fa-paper-plane"></i> Sent';
+// ── Accept ────────────────────────────────────────────────────────
+async function acceptFriendRequestById(requestId) {
+    try {
+        const response = await fetch(`/Chat/AcceptFriendRequest?requestId=${requestId}`, { method: 'POST' });
+        if (response.ok) {
+            loadPendingRequests();
+            loadSentRequests();
+            const user = allUsersForFriends.find(u => u.friendshipStatus?.requestId === requestId);
+            if (user) {
+                user.friendshipStatus = { status: "Accepted" };
+                updateUserCardButton(
+                    user.id,
+                    `<button class="add-friend-btn pending"><i class="fas fa-check-circle"></i> Friends</button>`,
+                    'Connected'
+                );
             }
-        } catch (err) {
-            console.error("Failed to load sent requests:", err);
         }
-    }
+    } catch (err) { console.error("Failed to accept request:", err); }
+}
 
-    function filterAddFriends() {
-        const search = document.getElementById('addFriendsSearch').value.toLowerCase();
-        const filtered = allUsersLoaded.filter(u => u.username.toLowerCase().includes(search));
-        renderAddFriendsList(filtered);
-    }
-
-    async function sendFriendRequest(userId) {
-        try {
-            const response = await fetch(`/Chat/SendFriendRequest?receiverId=${userId}`, {
-                method: 'POST'
-            });
-            if (response.ok) {
-                await loadUsersForFriends(true);
+// ── Reject ────────────────────────────────────────────────────────
+async function rejectFriendRequestById(requestId) {
+    try {
+        const response = await fetch(`/Chat/RejectFriendRequest?requestId=${requestId}`, { method: 'POST' });
+        if (response.ok) {
+            loadPendingRequests();
+            const user = allUsersForFriends.find(u => u.friendshipStatus?.requestId === requestId);
+            if (user) {
+                user.friendshipStatus = { status: "None" };
+                updateUserCardButton(
+                    user.id,
+                    `<button class="add-friend-btn send" onclick="sendFriendRequest(${user.id})"><i class="fas fa-user-plus"></i> Add Friend</button>`,
+                    user.isOnline ? 'Online' : 'Offline'
+                );
             }
-        } catch (err) {
-            console.error("Failed to send request:", err);
         }
+    } catch (err) { console.error("Failed to reject request:", err); }
+}
+
+// ── Cancel ────────────────────────────────────────────────────────
+async function cancelFriendRequestById(requestId) {
+    const user = allUsersForFriends.find(u => u.friendshipStatus?.requestId === requestId);
+    if (user) {
+        updateUserCardButton(
+            user.id,
+            `<button class="add-friend-btn send" onclick="sendFriendRequest(${user.id})"><i class="fas fa-user-plus"></i> Add Friend</button>`,
+            user.isOnline ? 'Online' : 'Offline'
+        );
+        user.friendshipStatus = { status: "None" };
     }
 
-    async function acceptFriendRequestById(requestId) {
-        try {
-            const response = await fetch(`/Chat/AcceptFriendRequest?requestId=${requestId}`, {
-                method: 'POST'
-            });
-            if (response.ok) {
-                await loadPendingRequests();
-                await loadUsersForFriends(true);
-                loadSentRequests();
-            }
-        } catch (err) {
-            console.error("Failed to accept request:", err);
+    try {
+        const response = await fetch(`/Chat/CancelFriendRequest?requestId=${requestId}`, { method: 'POST' });
+        if (response.ok) {
+            loadSentRequests();
+        } else if (user) {
+            updateUserCardButton(
+                user.id,
+                `<button class="add-friend-btn reject" onclick="cancelFriendRequestFromList(${user.id})"><i class="fas fa-times"></i> Cancel Request</button>`,
+                'Awaiting response'
+            );
+            user.friendshipStatus = { status: "Pending", isSender: true, requestId };
         }
-    }
+    } catch (err) { console.error("Failed to cancel request:", err); }
+}
 
-    async function rejectFriendRequestById(requestId) {
-        try {
-            const response = await fetch(`/Chat/RejectFriendRequest?requestId=${requestId}`, {
-                method: 'POST'
-            });
-            if (response.ok) {
-                await loadPendingRequests();
-            }
-        } catch (err) {
-            console.error("Failed to reject request:", err);
-        }
-    }
-
-    async function acceptFriendRequestFromList(userId) {
-        const status = getFriendStatus(userId);
-        if (status && status.requestId) {
-            await acceptFriendRequestById(status.requestId);
-        }
-    }
-
-    async function rejectFriendRequestFromList(userId) {
-        const status = getFriendStatus(userId);
-        if (status && status.requestId) {
-            await rejectFriendRequestById(status.requestId);
-        }
-    }
-    async function cancelFriendRequestById(requestId) {
-    const response = await fetch(`/Chat/CancelFriendRequest?requestId=${requestId}`, { method: 'POST' });
-    if (response.ok) { await loadSentRequests(); await loadUsersForFriends(true); }
+// ── From-list wrappers ────────────────────────────────────────────
+async function acceptFriendRequestFromList(userId) {
+    const status = getFriendStatus(userId);
+    if (status?.requestId) await acceptFriendRequestById(status.requestId);
+}
+async function rejectFriendRequestFromList(userId) {
+    const status = getFriendStatus(userId);
+    if (status?.requestId) await rejectFriendRequestById(status.requestId);
 }
 async function cancelFriendRequestFromList(userId) {
     const status = getFriendStatus(userId);
-    if (status && status.requestId) { await cancelFriendRequestById(status.requestId); }
+    if (status?.requestId) await cancelFriendRequestById(status.requestId);
 }
 
-    // SignalR connection for real-time friend request updates
-    const friendsConnection = new signalR.HubConnectionBuilder()
-        .withUrl("/chatHub")
-        .build();
+// ── SignalR ───────────────────────────────────────────────────────
+const friendsConnection = new signalR.HubConnectionBuilder()
+    .withUrl("/chatHub")
+    .build();
 
-    friendsConnection.start()
-        .then(() => {
-            return friendsConnection.invoke("RegisterUser", currentUserId);
-        })
-        .catch(err => console.error("Friends connection failed:", err));
+friendsConnection.start()
+    .then(() => friendsConnection.invoke("RegisterUser", currentUserId))
+    .catch(err => console.error("Friends connection failed:", err));
 
-    friendsConnection.on("FriendRequestReceived", function(senderId) {
-        loadPendingRequests();
-    });
-
-    friendsConnection.on("FriendRequestAccepted", function(userId) {
-        loadSentRequests();
-        loadUsersForFriends(true);
-    });
+friendsConnection.on("FriendRequestReceived", () => loadPendingRequests());
+friendsConnection.on("FriendRequestAccepted", () => { loadSentRequests(); loadUsersForFriends(true); });
 </script>
