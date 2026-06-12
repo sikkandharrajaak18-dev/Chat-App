@@ -28,8 +28,11 @@
 }
 else if (ViewBag.LastSeen != null)
 {
-    var dt = (DateTime)ViewBag.LastSeen;
-    var now = DateTime.UtcNow;
+    var utcDt = DateTime.SpecifyKind((DateTime)ViewBag.LastSeen, DateTimeKind.Utc);
+    var ist = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata");
+    var dt = TimeZoneInfo.ConvertTimeFromUtc(utcDt, ist);
+
+    var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ist);
     var today = now.Date;
     var yesterday = today.AddDays(-1);
     var sevenDaysAgo = now.AddDays(-7);
