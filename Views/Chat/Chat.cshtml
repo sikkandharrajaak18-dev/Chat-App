@@ -29,7 +29,7 @@
 else if (ViewBag.LastSeen != null)
 {
     var dt = (DateTime)ViewBag.LastSeen;
-    var now = DateTime.Now;
+    var now = DateTime.UtcNow;
     var today = now.Date;
     var yesterday = today.AddDays(-1);
     var sevenDaysAgo = now.AddDays(-7);
