@@ -624,13 +624,6 @@ namespace Chat_App.Controllers
 
             return View(model);
         }
-
-
-
-
-
-
-
         [HttpPost]
         public async Task<IActionResult> ForwardMessage([FromBody] ForwardRequest request)
         {

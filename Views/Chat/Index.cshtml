@@ -1748,56 +1748,83 @@
         }
         updateConversationItem(groupId, preview, sentAt, true, fileType, fileName, isMine);
     });
+function showToast(message, type = 'success') {
+    const existing = document.getElementById('toastNotif');
+    if (existing) existing.remove();
 
-    async function createGroup() {
+    const toast = document.createElement('div');
+    toast.id = 'toastNotif';
+    toast.style.cssText = `
+        position: fixed;
+        bottom: 32px;
+        left: 50%;
+        transform: translateX(-50%) translateY(20px);
+        background: ${type === 'success' ? 'linear-gradient(135deg, #10b981, #34d399)' : 'linear-gradient(135deg, #ef4444, #f87171)'};
+        color: white;
+        padding: 14px 24px;
+        border-radius: 14px;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 99999;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        opacity: 0;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        pointer-events: none;
+        white-space: nowrap;
+    `;
+    toast.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-times-circle'}"></i> ${message}`;
+    document.body.appendChild(toast);
 
+    requestAnimationFrame(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(-50%) translateY(0)';
+    });
+
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(-50%) translateY(20px)';
+        setTimeout(() => toast.remove(), 350);
+    }, 3000);
+}
+  async function createGroup() {
     const groupName = document.getElementById("groupName").value;
 
     if (!groupName.trim()) {
-        alert("Enter group name");
+        showToast("Please enter a group name", "error");
         return;
     }
 
-    // Get selected users
     const selectedUsers = [];
-
     document.querySelectorAll('input[name="selectedUsers"]:checked')
-        .forEach(cb => {
-            selectedUsers.push(parseInt(cb.value));
-        });
+        .forEach(cb => selectedUsers.push(parseInt(cb.value)));
 
     if (selectedUsers.length === 0) {
-        alert("Select at least one user");
+        showToast("Select at least one user", "error");
         return;
     }
 
-    const data = {
-        groupName: groupName,
-        userIds: selectedUsers
-    };
+    const data = { groupName: groupName, userIds: selectedUsers };
 
     try {
-
         const response = await fetch('/Chat/CreateGroup', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
-if (response.ok) {
 
-    alert("Group created successfully");
-
-    window.location.href = "/Chat/Index";
-}
-        else {
-            alert("Failed to create group");
+        if (response.ok) {
+            closeGroupPopup();
+            showToast("Group created successfully!");
+            setTimeout(() => { window.location.href = "/Chat/Index"; }, 1500);
+        } else {
+            showToast("Failed to create group", "error");
         }
-
     } catch (error) {
         console.log(error);
-        alert("Error creating group");
+        showToast("Error creating group", "error");
     }
 }
 
