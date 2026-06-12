@@ -38,7 +38,7 @@ else if (ViewBag.LastSeen != null)
     var sevenDaysAgo = now.AddDays(-7);
     var msgDate = dt.Date;
     var timeStr = dt.ToString("h:mm tt");
-
+    var diff=(Today-msgDate).Days;
     if (msgDate == today)
     {
         <span>last seen @timeStr</span>
@@ -53,7 +53,7 @@ else if (ViewBag.LastSeen != null)
     }
     else
     {
-        <span>last seen @dt.ToString("M/d/yyyy")</span>
+        <span>last seen @diff days ago</span>
     }
 }
                     <span class="conn-status" id="connStatus" style="display:none;"></span>
