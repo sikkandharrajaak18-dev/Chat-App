@@ -22,7 +22,8 @@
             <div class="user-info">
                 <div class="user-name">@ViewBag.ReceiverName</div>
                 <div class="user-status" id="userStatus">
-                   @if (ViewBag.IsOnline == true)
+                  @if (ViewBag.IsOnline == true)
+
 {
     <span class="status-online">Online</span>
 }
@@ -31,14 +32,13 @@ else if (ViewBag.LastSeen != null)
     var utcDt = DateTime.SpecifyKind((DateTime)ViewBag.LastSeen, DateTimeKind.Utc);
     var ist = TimeZoneInfo.FindSystemTimeZoneById("Asia/Kolkata");
     var dt = TimeZoneInfo.ConvertTimeFromUtc(utcDt, ist);
-
     var now = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, ist);
     var today = now.Date;
     var yesterday = today.AddDays(-1);
     var sevenDaysAgo = now.AddDays(-7);
     var msgDate = dt.Date;
     var timeStr = dt.ToString("h:mm tt");
-    var diff=(Today-msgDate).Days;
+    var daysAgo = (today - msgDate).Days;
     if (msgDate == today)
     {
         <span>last seen @timeStr</span>
@@ -53,8 +53,10 @@ else if (ViewBag.LastSeen != null)
     }
     else
     {
-        <span>last seen @diff days ago</span>
+        <span>last seen @daysAgo days ago</span>
+
     }
+
 }
                     <span class="conn-status" id="connStatus" style="display:none;"></span>
                 </div>
