@@ -22,34 +22,36 @@
             <div class="user-info">
                 <div class="user-name">@ViewBag.ReceiverName</div>
                 <div class="user-status" id="userStatus">
-                    @if (ViewBag.LastSeen != null)
+                   @if (ViewBag.IsOnline == true)
 {
-    var lastSeenDate = (DateTime)ViewBag.LastSeen;
-
-    var time = lastSeenDate.ToString("h:mm tt").Replace(".", ":");
-
+    <span class="status-online">Online</span>
+}
+else if (ViewBag.LastSeen != null)
+{
+    var dt = (DateTime)ViewBag.LastSeen;
     var now = DateTime.Now;
-    var todayStart = now.Date;
-    var seenStart = lastSeenDate.Date;
+    var today = now.Date;
+    var yesterday = today.AddDays(-1);
+    var sevenDaysAgo = now.AddDays(-7);
+    var msgDate = dt.Date;
+    var timeStr = dt.ToString("h:mm tt");
 
-    var diffDays = (todayStart - seenStart).Days;
-
-    string label;
-
-    if (diffDays == 0)
+    if (msgDate == today)
     {
-        label = $"last seen {time}";
+        <span>last seen @timeStr</span>
     }
-    else if (diffDays == 1)
+    else if (msgDate == yesterday)
     {
-        label = $"last seen yesterday at {time}";
+        <span>last seen Yesterday at @timeStr</span>
+    }
+    else if (dt > sevenDaysAgo)
+    {
+        <span>last seen @dt.ToString("dddd")</span>
     }
     else
     {
-        label = $"last seen {diffDays} days ago";
+        <span>last seen @dt.ToString("M/d/yyyy")</span>
     }
-
-    <span>@label</span>
 }
                     <span class="conn-status" id="connStatus" style="display:none;"></span>
                 </div>
@@ -4056,6 +4058,28 @@ function updateFriendRequestUI() {
     }
     } catch (e) { console.error(e); }
     }
+    function formatChatTimestamps() {
+        document.querySelectorAll('.msg-time[data-utc]').forEach(function(el) {
+            var d = new Date(el.getAttribute('data-utc'));
+            var now = new Date();
+            var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            var yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            var md = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+            var ts = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+            if (md.getTime() === today.getTime()) {
+                el.textContent = ts;
+            } else if (md.getTime() === yesterday.getTime()) {
+                el.textContent = 'Yesterday';
+            } else if (d > new Date(now.getTime() - 7 * 86400000)) {
+                el.textContent = d.toLocaleDateString([], { weekday: 'long' });
+            } else {
+                el.textContent = d.toLocaleDateString([], { month: 'numeric', day: 'numeric', year: 'numeric' });
+            }
+        });
+    }
+    formatChatTimestamps();
+
 
 
     // Apply saved theme immediately before any messages render
