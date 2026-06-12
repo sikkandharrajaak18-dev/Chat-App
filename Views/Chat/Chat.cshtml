@@ -22,28 +22,35 @@
             <div class="user-info">
                 <div class="user-name">@ViewBag.ReceiverName</div>
                 <div class="user-status" id="userStatus">
-                    @if (ViewBag.IsOnline == true)
-                    {
-                        <span class="status-online">Online</span>
-                    }
-                    else if (ViewBag.LastSeen != null)
-                    {
-                        var dt = (DateTime)ViewBag.LastSeen;
-                        var t = dt.ToString("h:mm tt").Replace(".", ":");
-                        var d = (DateTime.Now.Date - dt.Date).Days;
-                        if (d == 0)
-                        {
-                            <span>last seens @t</span>
-                        }
-                        else if (d == 1)
-                        {
-                            <span>last seen yesterday at @t</span>
-                        }
-                        else
-                        {
-                            <span>last seen @d days ago </span>
-                        }
-                    }
+                    @if (ViewBag.LastSeen != null)
+{
+    var lastSeenDate = (DateTime)ViewBag.LastSeen;
+
+    var time = lastSeenDate.ToString("h:mm tt").Replace(".", ":");
+
+    var now = DateTime.Now;
+    var todayStart = now.Date;
+    var seenStart = lastSeenDate.Date;
+
+    var diffDays = (todayStart - seenStart).Days;
+
+    string label;
+
+    if (diffDays == 0)
+    {
+        label = $"last seen {time}";
+    }
+    else if (diffDays == 1)
+    {
+        label = $"last seen yesterday at {time}";
+    }
+    else
+    {
+        label = $"last seen {diffDays} days ago";
+    }
+
+    <span>@label</span>
+}
                     <span class="conn-status" id="connStatus" style="display:none;"></span>
                 </div>
             </div>
