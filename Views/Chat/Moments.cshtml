@@ -41,83 +41,80 @@
         </a>
     </div>
     <!-- Moments Body -->
-    <div class="moments-body">
-        <!-- Pulse Bar -->
-        <div class="pulse-bar">
-            <span class="pulse-label">PULSE</span>
-            <div class="pulse-track">
-                <!-- Add Yours -->
-                <div class="pulse-node" onclick="openUpload()">
-                    <div class="pulse-ring add-ring">
-                        <div class="pulse-inner add-inner">
-                            <i class="fas fa-plus"></i>
-                        </div>
-                    </div>
-                    <span class="pulse-name">Add Yours</span>
+    <!-- Pulse Bar -->
+<div class="pulse-bar">
+    <span class="pulse-label">PULSE</span>
+    <div class="pulse-track">
+        <div class="pulse-node" onclick="openUpload()">
+            <div class="pulse-ring add-ring">
+                <div class="pulse-inner add-inner">
+                    <i class="fas fa-plus"></i>
                 </div>
-                @{
-                    var groupedMoments = Model.GroupBy(m => m.UserId);
-                }
-                @foreach (var group in groupedMoments)
+            </div>
+            <span class="pulse-name">Add Yours</span>
+        </div>
+        @{
+            var groupedMoments = Model.GroupBy(m => m.UserId);
+        }
+        @foreach (var group in groupedMoments)
+        {
+            var userMoments = group.ToList();
+            var user = userMoments.First();
+            var hasUnviewed = userMoments.Any(m => !m.Views.Any(v => v.ViewedByUserId == currentUserId));
+            var ringClass = hasUnviewed ? "live-ring" : "seen-ring";
+            var initials = GetInitials(usersDict?.ContainsKey(group.Key) == true ? usersDict[group.Key].username : "?");
+            <div class="pulse-node" onclick="showMomentViewer(@group.Key)">
+                <div class="pulse-ring @ringClass">
+                    <div class="pulse-inner @(hasUnviewed ? "" : "seen-inner")">@initials</div>
+                </div>
+                <span class="pulse-name">@(usersDict?.ContainsKey(group.Key) == true ? usersDict[group.Key].username : "Unknown")</span>
+            </div>
+        }
+    </div>
+</div>
+<div class="feed-divider"></div>
+<!-- Moments Feed -->
+<div class="moments-feed" id="momentsFeed">
+    @foreach (var moment in Model)
+    {
+        <div class="moment-card" data-moment-id="@moment.Id" data-user-id="@moment.UserId">
+            <div class="card-header">
+                <div class="card-avatar" style="background:linear-gradient(135deg,#6366f1,#a855f7)">
+                    @GetInitials(usersDict?.ContainsKey(moment.UserId) == true ? usersDict[moment.UserId].username : "?")
+                </div>
+                <div class="card-meta">
+                    <span class="card-name">@(usersDict?.ContainsKey(moment.UserId) == true ? usersDict[moment.UserId].username : "Unknown")</span>
+                    <span class="card-time time-remaining" data-expires="@moment.ExpiresAt.ToString("o")"></span>
+                </div>
+                <span class="live-badge"><i class="fas fa-circle"></i> LIVE</span>
+            </div>
+            <div class="card-visual">
+                @if (moment.FileType == "video")
                 {
-                    var userMoments = group.ToList();
-                    var user = userMoments.First();
-                    var hasUnviewed = userMoments.Any(m => !m.Views.Any(v => v.ViewedByUserId == currentUserId));
-                    var ringClass = hasUnviewed ? "live-ring" : "seen-ring";
-                   var initials = GetInitials(usersDict?.ContainsKey(group.Key) == true ? usersDict[group.Key].username : "?");
-                    <div class="pulse-node" onclick="showMomentViewer(@group.Key)">
-                        <div class="pulse-ring @ringClass">
-                            <div class="pulse-inner @(hasUnviewed ? "" : "seen-inner")">@initials</div>
-                        </div>
-                        <span class="pulse-name">@(usersDict?.ContainsKey(group.Key) == true ? usersDict[group.Key].username : "Unknown")</span>
-                    </div>
+                    <video src="@moment.MediaUrl" muted loop playsinline preload="metadata" onclick="this.paused ? this.play() : this.pause()"></video>
+                }
+                else
+                {
+                    <img src="@moment.MediaUrl" alt="Moment" />
                 }
             </div>
-        </div>
-        <div class="feed-divider"></div>
-        <!-- Moments Feed -->
-        <div class="moments-feed" id="momentsFeed">
-            @foreach (var moment in Model)
-            {
-                <div class="moment-card" data-moment-id="@moment.Id" data-user-id="@moment.UserId">
-                    <div class="card-header">
-                        <div class="card-avatar" style="background:linear-gradient(135deg,#6366f1,#a855f7)">
-                            @GetInitials(usersDict?.ContainsKey(moment.UserId) == true ? usersDict[moment.UserId].username : "?")
-                        </div>
-                        <div class="card-meta">
-                           <span class="card-name">@(usersDict?.ContainsKey(moment.UserId) == true ? usersDict[moment.UserId].username : "Unknown")</span
-                            <span class="card-time time-remaining" data-expires="@moment.ExpiresAt.ToString("o")"></span>
-                        </div>
-                        <span class="live-badge"><i class="fas fa-circle"></i> LIVE</span>
-                    </div>
-                    <div class="card-visual">
-                        @if (moment.FileType == "video")
-                        {
-                            <video src="@moment.MediaUrl" muted loop playsinline preload="metadata" onclick="this.paused ? this.play() : this.pause()"></video>
-                        }
-                        else
-                        {
-                            <img src="@moment.MediaUrl" alt="Moment" />
-                        }
-                    </div>
-                    <div class="card-footer">
-                        @if (!string.IsNullOrEmpty(moment.Caption))
-                        {
-                            <div class="card-caption">@moment.Caption</div>
-                        }
-                        <div class="card-actions">
-                            <button class="act-btn" onclick="toggleLike(this)">
-                                <i class="far fa-heart"></i> <span>0</span>
-                            </button>
-                            <button class="act-btn" onclick="viewMoment(@moment.Id, this)">
-                                <i class="far fa-eye"></i> <span>@moment.Views.Count</span>
-                            </button>
-                        </div>
-                    </div>
+            <div class="card-footer">
+                @if (!string.IsNullOrEmpty(moment.Caption))
+                {
+                    <div class="card-caption">@moment.Caption</div>
+                }
+                <div class="card-actions">
+                    <button class="act-btn" onclick="toggleLike(this)">
+                        <i class="far fa-heart"></i> <span>0</span>
+                    </button>
+                    <button class="act-btn" onclick="viewMoment(@moment.Id, this)">
+                        <i class="far fa-eye"></i> <span>@moment.Views.Count</span>
+                    </button>
                 </div>
-            }
+            </div>
         </div>
-    </div>
+    }
+</div>
     <!-- Upload Overlay -->
     <div class="upload-overlay" id="uploadOverlay" onclick="closeUpload()">
         <div class="upload-sheet" id="uploadSheet" onclick="event.stopPropagation()">
@@ -230,9 +227,7 @@
     }
     .tab-item:hover { color: rgba(255,255,255,0.8); background: rgba(99,102,241,0.08); }
     .tab-item.active { color: #a855f7; border-bottom-color: #a855f7; }
-    .moments-body { flex: 1; overflow-y: auto; scrollbar-width: none; }
-    .moments-body::-webkit-scrollbar { display: none; }
-    .pulse-bar { padding: 14px 16px 10px; }
+    .pulse-bar { flex-shrink: 0; padding: 14px 16px 10px; }
     .pulse-label {
         font-size: 10px; font-weight: 700; letter-spacing: 1.5px;
         color: rgba(255,255,255,0.3); display: block; margin-bottom: 10px;
@@ -253,8 +248,17 @@
     .add-inner { background: rgba(99,102,241,0.2); border: none; color: #a855f7; font-size: 22px; }
     .seen-inner { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.35); }
     .pulse-name { font-size: 11px; color: rgba(255,255,255,0.45); font-weight: 500; max-width: 64px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .feed-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 0; }
-    .moments-feed { padding: 8px 14px 20px; display: flex; flex-direction: column; gap: 12px; }
+    .feed-divider { height: 1px; background: rgba(255,255,255,0.06); margin: 4px 0; flex-shrink: 0; }
+    .moments-feed {
+        flex: 1;
+        overflow-y: auto;
+        scrollbar-width: none;
+        padding: 8px 14px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .moments-feed::-webkit-scrollbar { display: none; }
     .moment-card {
         border-radius: 18px; overflow: hidden;
         background: rgba(255,255,255,0.05);
@@ -394,8 +398,7 @@
         .chat-header { padding: 18px 20px; }
         .tab-nav { padding: 0 20px; }
     }
-</style>
-<script>
+</style><script>
     let selectedFile = null;
     let selectedFileType = 'image';
     function openUpload() {
