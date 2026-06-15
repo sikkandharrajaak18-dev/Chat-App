@@ -17,14 +17,14 @@ namespace Chat_App.Controllers
         public IActionResult Login()
         {
             if (User.Identity?.IsAuthenticated == true)
-                return RedirectToAction("Index", "App");
+                return RedirectToAction("Index", "Chat");
             ViewBag.SuccessMessage = TempData["Success"];
             return View();
         }
         public IActionResult Register(bool reset = false)
         {
             if (User.Identity?.IsAuthenticated == true)
-                return RedirectToAction("Index", "App");
+                return RedirectToAction("Index", "Chat");
             ViewData["Title"] = "Register";
             if (reset)
             {
@@ -131,7 +131,7 @@ namespace Chat_App.Controllers
                         IsPersistent = rememberMe,
                         ExpiresUtc = rememberMe ? DateTimeOffset.UtcNow.AddDays(30) : null
                     });
-                return RedirectToAction("Index", "App");
+                return RedirectToAction("Index", "Chat");
             }
             ViewBag.ErrorMessage = "Invalid username or password.";
             return View();

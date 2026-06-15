@@ -12,7 +12,7 @@ using System.Security.Claims;
 namespace Chat_App.Controllers
 {
     [Authorize]
-    public class AppController : Controller
+    public class ChatController : Controller
     {
         private readonly IChatIndexService _chatIndex;
         private readonly IMessageService _message;
@@ -27,7 +27,7 @@ namespace Chat_App.Controllers
         private readonly IMomentRepository _momentRepo;
         private readonly IUserRepository _userRepo;
         private readonly ApplicationDBContext dbContext;
-        public AppController(
+        public ChatController(
             IChatIndexService chatIndex,
             IMessageService message,
             IFriendService friend,
@@ -166,7 +166,7 @@ namespace Chat_App.Controllers
             var userId = CurrentUserId;
             var sessionId = HttpContext.Session.GetInt32("HiddenAccessGranted");
             if (userId != sessionId)
-                return RedirectToAction("HiddenAccess", "App");
+                return RedirectToAction("HiddenAccess", "Chat");
             var user = await _profile.GetProfile(userId);
             ViewBag.CurrentUserProfileImage = user?.ProfileImagePath;
             ViewBag.CurrentUserUsername = user?.username;
