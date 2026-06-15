@@ -131,7 +131,7 @@ namespace Chat_App.Controllers
                         IsPersistent = rememberMe,
                         ExpiresUtc = rememberMe ? DateTimeOffset.UtcNow.AddDays(30) : null
                     });
-                return RedirectToAction("Index", "Chat");
+                return RedirectToAction("Index", "App");
             }
             ViewBag.ErrorMessage = "Invalid username or password.";
             return View();
