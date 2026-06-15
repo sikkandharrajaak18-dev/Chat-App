@@ -12,7 +12,7 @@ using System.Security.Claims;
 namespace Chat_App.Controllers
 {
     [Authorize]
-    public class ChatController : Controller
+    public class AppController : Controller
     {
         private readonly IChatIndexService _chatIndex;
         private readonly IMessageService _message;
@@ -27,7 +27,7 @@ namespace Chat_App.Controllers
         private readonly IMomentRepository _momentRepo;
         private readonly IUserRepository _userRepo;
         private readonly ApplicationDBContext dbContext;
-        public ChatController(
+        public AppController(
             IChatIndexService chatIndex,
             IMessageService message,
             IFriendService friend,
