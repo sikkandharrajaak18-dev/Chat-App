@@ -88,7 +88,7 @@ public class ChatHub : Hub
                     }
                 }
             }
-            await Clients.All.SendAsync("UserStatusChanged", userId, true, DateTime.UtcNow);
+            await Clients.All.SendAsync("UserStatusChanged", userId, true, DateTime.UtcNow.ToString("o"));
         }
     }
     public async Task SendMessage(int senderId, int receiverId, string message)
@@ -501,7 +501,12 @@ public class ChatHub : Hub
     {
         var user = await _db.user.FindAsync(userId);
         if (user != null)
-            await Clients.Caller.SendAsync("UserStatusResponse", userId, user.IsOnline, user.LastSeen);
+        {
+            var lastSeenStr = user.LastSeen.HasValue
+                ? DateTime.SpecifyKind(user.LastSeen.Value, DateTimeKind.Utc).ToString("o")
+                : null;
+            await Clients.Caller.SendAsync("UserStatusResponse", userId, user.IsOnline, lastSeenStr);
+        }
     }
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
@@ -517,7 +522,7 @@ public class ChatHub : Hub
                     dbUser.IsOnline = false;
                     dbUser.LastSeen = DateTime.UtcNow;
                     await _db.SaveChangesAsync();
-                    await Clients.All.SendAsync("UserStatusChanged", userId.Value, false, DateTime.UtcNow);
+                    await Clients.All.SendAsync("UserStatusChanged", userId.Value, false, DateTime.UtcNow.ToString("o"));
                 }
             }
         }
