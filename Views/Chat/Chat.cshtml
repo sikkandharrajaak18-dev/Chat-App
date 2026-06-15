@@ -3023,32 +3023,57 @@ connection.start()
     } else if (lastSeen) {
     if (offlineTimeout) return;
     offlineTimeout = setTimeout(function () {
-    offlineTimeout = null;
-                    const lastSeenDate = new Date(lastSeen);
-                    const time = lastSeenDate.toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                    }).replace(".",":");
-                    const now = new Date();
-                    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                    const seenStart = new Date(lastSeenDate.getFullYear(), lastSeenDate.getMonth(), lastSeenDate.getDate());
-                    const diffDays = Math.round((todayStart - seenStart) / (1000 * 60 * 60 * 24));
-                    var label;
-                    if (diffDays === 0) {
-                    label = 'last seen ' + time;
-                    } else if (diffDays === 1) {
-                    label = 'last seen yesterday at ' + time;
-                    } else {
-                    label = 'last seen ' + diffDays + ' days ago ';
-                    }
-                    const newHtml = '<span>' + label + '</span>';
-    if (newHtml !== lastStatusHtml) {
-    lastStatusHtml = newHtml;
-    statusElement.innerHTML = newHtml;
-    }
+        offlineTimeout = null;
+
+        const lastSeenDate = new Date(lastSeen);
+
+        // Convert to IST (UTC+5:30)
+        const istOffset = 5.5 * 60 * 60 * 1000;
+        const istNow = new Date(Date.now() + istOffset - (new Date().getTimezoneOffset() * 60000) * 0 + new Date().getTimezoneOffset() * 60000);
+
+        // Use Intl to get IST times properly
+        const toIST = (date) => {
+            return new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+        };
+
+        const dtIST = toIST(lastSeenDate);
+        const nowIST = toIST(new Date());
+
+        const todayIST = new Date(nowIST.getFullYear(), nowIST.getMonth(), nowIST.getDate());
+        const yesterdayIST = new Date(todayIST);
+        yesterdayIST.setDate(yesterdayIST.getDate() - 1);
+        const sevenDaysAgoIST = new Date(nowIST);
+        sevenDaysAgoIST.setDate(sevenDaysAgoIST.getDate() - 7);
+
+        const msgDateIST = new Date(dtIST.getFullYear(), dtIST.getMonth(), dtIST.getDate());
+
+        const timeStr = dtIST.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+
+        const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+        const daysAgo = Math.round((todayIST - msgDateIST) / (1000 * 60 * 60 * 24));
+
+        var label;
+        if (msgDateIST.getTime() === todayIST.getTime()) {
+            label = 'last seen ' + timeStr;
+        } else if (msgDateIST.getTime() === yesterdayIST.getTime()) {
+            label = 'last seen Yesterday at ' + timeStr;
+        } else if (dtIST > sevenDaysAgoIST) {
+            label = 'last seen ' + dayNames[dtIST.getDay()];
+        } else {
+            label = 'last seen ' + daysAgo + ' days ago';
+        }
+
+        const newHtml = '<span>' + label + '</span>';
+        if (newHtml !== lastStatusHtml) {
+            lastStatusHtml = newHtml;
+            statusElement.innerHTML = newHtml;
+        }
     }, 2000);
-    }
+}
     }
 
     if (connectionReady) {
