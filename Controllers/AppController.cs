@@ -166,7 +166,7 @@ namespace Chat_App.Controllers
             var userId = CurrentUserId;
             var sessionId = HttpContext.Session.GetInt32("HiddenAccessGranted");
             if (userId != sessionId)
-                return RedirectToAction("HiddenAccess", "Chat");
+                return RedirectToAction("HiddenAccess", "App");
             var user = await _profile.GetProfile(userId);
             ViewBag.CurrentUserProfileImage = user?.ProfileImagePath;
             ViewBag.CurrentUserUsername = user?.username;

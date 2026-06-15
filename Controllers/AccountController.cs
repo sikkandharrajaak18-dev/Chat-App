@@ -17,14 +17,14 @@ namespace Chat_App.Controllers
         public IActionResult Login()
         {
             if (User.Identity?.IsAuthenticated == true)
-                return RedirectToAction("Index", "Chat");
+                return RedirectToAction("Index", "App");
             ViewBag.SuccessMessage = TempData["Success"];
             return View();
         }
         public IActionResult Register(bool reset = false)
         {
             if (User.Identity?.IsAuthenticated == true)
-                return RedirectToAction("Index", "Chat");
+                return RedirectToAction("Index", "App");
             ViewData["Title"] = "Register";
             if (reset)
             {
