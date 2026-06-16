@@ -52,9 +52,7 @@ namespace Chat_App.Services.Implementations
         {
             var request = await _friendRequestRepo.GetByIdAndReceiverAsync(requestId, currentUserId);
             if (request == null) return;
-            request.Status = "Rejected";
-            request.RespondedAt = DateTime.UtcNow;
-            await _friendRequestRepo.SaveChangesAsync();
+            await _friendRequestRepo.DeleteAsync(request);
         }
         public async Task<List<PendingFriendRequestDto>> GetPendingRequests(int currentUserId)
         {
