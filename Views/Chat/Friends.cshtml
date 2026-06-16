@@ -817,19 +817,25 @@ async function rejectFriendRequestById(requestId) {
         const response = await fetch(`/Chat/RejectFriendRequest?requestId=${requestId}`, { method: 'POST' });
         if (response.ok) {
             loadPendingRequests();
+
+            // Find user by requestId OR reset all users with matching status
             const user = allUsersForFriends.find(u => u.friendshipStatus?.requestId === requestId);
             if (user) {
                 user.friendshipStatus = { status: "None" };
                 updateUserCardButton(
                     user.id,
-                    `<button class="add-friend-btn send" onclick="sendFriendRequest(${user.id})"><i class="fas fa-user-plus"></i> Add Friend</button>`,
+                    `<button class="add-friend-btn send" onclick="sendFriendRequest(${user.id})">
+                        <i class="fas fa-user-plus"></i> Add Friend
+                    </button>`,
                     user.isOnline ? 'Online' : 'Offline'
                 );
+            } else {
+                // requestId wasn't tracked in allUsersForFriends, so refresh the list
+                loadUsersForFriends(true);
             }
         }
     } catch (err) { console.error("Failed to reject request:", err); }
 }
-
 // ── Cancel ────────────────────────────────────────────────────────
 async function cancelFriendRequestById(requestId) {
     const user = allUsersForFriends.find(u => u.friendshipStatus?.requestId === requestId);
@@ -846,6 +852,7 @@ async function cancelFriendRequestById(requestId) {
         const response = await fetch(`/Chat/CancelFriendRequest?requestId=${requestId}`, { method: 'POST' });
         if (response.ok) {
             loadSentRequests();
+            if (!user) loadUsersForFriends(true); // ← add this
         } else if (user) {
             updateUserCardButton(
                 user.id,
