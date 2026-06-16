@@ -1924,13 +1924,17 @@ else if (ViewBag.LastSeen != null)
     showConnStatus('Reconnecting...', 'warning');
     });
 
-    connection.onreconnected(function () {
+   connection.onreconnected(function () {
     connectionReady = true;
     showConnStatus(null);
-    connection.invoke("RegisterUser", senderId).catch(function (err) {
-    console.error("Re-register failed: ", err);
-    });
-    });
+    connection.invoke("RegisterUser", senderId)
+        .then(function() {
+            markVisibleReceivedMessagesAsRead();
+        })
+        .catch(function (err) {
+            console.error("Re-register failed: ", err);
+        });
+});
 
     connection.onclose(function () {
     connectionReady = false;
@@ -1947,6 +1951,7 @@ connection.start()
 })
 .then(function () {
     markVisibleReceivedMessagesAsRead();
+    connection.invoke("GetUserStatus", receiverId);
 })
 .catch(err => console.error("Connection failed: ", err));
     // Do NOT call MarkMessagesAsRead here — the IntersectionObserver
@@ -2068,6 +2073,13 @@ connection.start()
     } else {
     noMessages.classList.remove('show');
     }
+    // Refresh tick icons for all loaded sent messages
+document.querySelectorAll('.message-wrapper.sent').forEach(function(wrapper) {
+    const msgId = parseInt(wrapper.dataset.messageId);
+    if (messageStatusMap[msgId]) {
+        updateMessageTick(msgId);
+    }
+});
     scrollToBottom();
     } catch (err) {
     console.error("Failed to load past messages: ", err);
@@ -3073,23 +3085,22 @@ connection.start()
     // IntersectionObserver: marks a received message as read only when it scrolls into view
     const readObserver = new IntersectionObserver(function(entries) {
     entries.forEach(function(entry) {
-    if (entry.isIntersecting) {
-    const wrapper = entry.target;
-    const msgId = parseInt(wrapper.dataset.messageId);
-    const msgSenderId = parseInt(wrapper.dataset.senderId || '0');
+        if (entry.isIntersecting) {
+            const wrapper = entry.target;
+            const msgId = parseInt(wrapper.dataset.messageId);
+            const msgSenderId = parseInt(wrapper.dataset.senderId || '0');
 
-    // Only mark messages from the other person as read
-    if (msgSenderId !== senderId && msgSenderId > 0) {
-                if (connectionReady) {
-                    connection.invoke("MarkMessagesAsRead", msgSenderId, senderId);
-                    readObserver.unobserve(wrapper); // stop watching once marked
-                }
-                // Don't unobserve if connection isn't ready — markVisibleReceivedMessagesAsRead() handles it later
-            }
-    }
+            // Only mark messages from the other person as read
+            if (msgSenderId !== senderId && msgSenderId > 0) {
+                        if (connectionReady) {
+                            connection.invoke("MarkMessagesAsRead", msgSenderId, senderId);
+                            readObserver.unobserve(wrapper); // stop watching once marked
+                        }
+                        // Don't unobserve if connection isn't ready — markVisibleReceivedMessagesAsRead() handles it later
+                    }
+        }
     });
-    }, { threshold: 0.5 }); // message must be 50% visible
-
+}, { threshold: 0.5 }); // message must be 50% visible
     function observeReceivedMessage(wrapper, msgSenderId) {
     if (msgSenderId !== senderId) {
     wrapper.dataset.senderId = msgSenderId;
@@ -3933,7 +3944,18 @@ function updateFriendRequestUI() {
     <div style="font-size:13px;font-weight:600;text-align:center;padding:10px;background:#f8fafc;color:#475569;">${t.name}</div>
     </div>`).join('');
     }
-
+    function markVisibleReceivedMessagesAsRead() {
+    if (!connectionReady) return;
+    const wrappers = document.querySelectorAll('.message-wrapper.received[data-sender-id]');
+    wrappers.forEach(function(wrapper) {
+        const msgSenderId = parseInt(wrapper.dataset.senderId || '0');
+        if (msgSenderId !== senderId && msgSenderId > 0) {
+            connection.invoke("MarkMessagesAsRead", msgSenderId, senderId)
+                .catch(err => console.error("MarkRead failed:", err));
+            readObserver.unobserve(wrapper);
+        }
+    });
+}
     function selectThemeCard(id) {
     selectedThemeId = id;
     renderThemeGrid();
