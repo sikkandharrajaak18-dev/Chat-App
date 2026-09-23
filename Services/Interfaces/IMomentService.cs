@@ -1,5 +1,4 @@
-﻿using Chat_App.Migrations;
-using Chat_App.Models;
+﻿using Chat_App.Models;
 
 namespace Chat_App.Services.Interfaces
 {
